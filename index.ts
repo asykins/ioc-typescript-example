@@ -2,7 +2,7 @@ import { OnInit, Startup } from "./onInit";
 import { IRepository, Repository } from './repository';
 
 @Startup()
-class InjectedClass extends OnInit {
+export class InjectedClass extends OnInit {
     _repository: IRepository;
     constructor(repository: Repository){
         super();
