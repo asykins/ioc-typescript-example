@@ -1,13 +1,17 @@
 # ioc-typescript-example
 
 ## Decorators 
-### Injectable
+### Dependency
 
-Describe a class that needs to be injected
-The decorator does nothing more than exposing meta-data of the class as only decorated classes reflect metadatas.
+Mark a parameter that need to be resolved by the Injector class.
+The parameter passed to the decorator is a symbol describe in the TypeSymbols.
 
 ### Startup
 
 Describe a class that will automatically be instanciated.
 Dependencies will be resolved with the Injector class.
+
+## Type Symbols
+
+Describe the relationship between an implementation and abstraction.
 
