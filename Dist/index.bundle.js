@@ -1467,20 +1467,18 @@ module.exports = g;
 Object.defineProperty(exports, "__esModule", { value: true });
 const injector_1 = __webpack_require__(/*! ./injector */ "./src/injector.ts");
 const ioc_container_1 = __webpack_require__(/*! ./ioc-container */ "./src/ioc-container.ts");
-function Dependency(registeredType) {
+exports.Dependency = (registeredType) => {
     return (target, propertyKey, parameterIndex) => {
         console.log("Bind");
         Reflect.defineMetadata("design:ioctypes:" + parameterIndex, ioc_container_1.Container.instance().resolve(registeredType), target);
     };
-}
-exports.Dependency = Dependency;
-function Startup() {
+};
+exports.Startup = () => {
     return (target) => {
         console.log("Startup");
         injector_1.Injector.resolve(target).onInit();
     };
-}
-exports.Startup = Startup;
+};
 
 
 /***/ }),
@@ -1507,10 +1505,9 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-__webpack_require__(/*! ./decorators */ "./src/decorators.ts");
+const decorators_1 = __webpack_require__(/*! ./decorators */ "./src/decorators.ts");
 const typesymbols_1 = __webpack_require__(/*! ./typesymbols */ "./src/typesymbols.ts");
 const onInit_1 = __webpack_require__(/*! ./onInit */ "./src/onInit.ts");
-const decorators_1 = __webpack_require__(/*! ./decorators */ "./src/decorators.ts");
 let InjectedClass = class InjectedClass extends onInit_1.OnInit {
     constructor(repository) {
         super();
@@ -1666,7 +1663,6 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-__webpack_require__(/*! ./decorators */ "./src/decorators.ts");
 const decorators_1 = __webpack_require__(/*! ./decorators */ "./src/decorators.ts");
 const typesymbols_1 = __webpack_require__(/*! ./typesymbols */ "./src/typesymbols.ts");
 let Repository = class Repository {
