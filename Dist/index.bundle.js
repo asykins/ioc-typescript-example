@@ -1455,30 +1455,44 @@ module.exports = g;
 
 /***/ }),
 
-/***/ "./src/decorators.ts":
-/*!***************************!*\
-  !*** ./src/decorators.ts ***!
-  \***************************/
+/***/ "./src/decorators/dependency-decorator.ts":
+/*!************************************************!*\
+  !*** ./src/decorators/dependency-decorator.ts ***!
+  \************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const injector_1 = __webpack_require__(/*! ./injector */ "./src/injector.ts");
-const ioc_container_1 = __webpack_require__(/*! ./ioc-container */ "./src/ioc-container.ts");
-exports.Dependency = (registeredType) => {
+__webpack_require__(/*! reflect-metadata */ "./node_modules/reflect-metadata/Reflect.js");
+function Dependency(registeredType) {
     return (target, propertyKey, parameterIndex) => {
-        console.log("Bind");
-        Reflect.defineMetadata("design:ioctypes:" + parameterIndex, ioc_container_1.Container.instance().resolve(registeredType), target);
+        Reflect.defineMetadata("design:ioctypes:" + parameterIndex, registeredType, target);
     };
-};
-exports.Startup = () => {
+}
+exports.Dependency = Dependency;
+
+
+/***/ }),
+
+/***/ "./src/decorators/startup-decorator.ts":
+/*!*********************************************!*\
+  !*** ./src/decorators/startup-decorator.ts ***!
+  \*********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const injector_1 = __webpack_require__(/*! ../injector */ "./src/injector.ts");
+function Startup() {
     return (target) => {
-        console.log("Startup");
         injector_1.Injector.resolve(target).onInit();
     };
-};
+}
+exports.Startup = Startup;
 
 
 /***/ }),
@@ -1505,22 +1519,26 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const decorators_1 = __webpack_require__(/*! ./decorators */ "./src/decorators.ts");
-const typesymbols_1 = __webpack_require__(/*! ./typesymbols */ "./src/typesymbols.ts");
+const typesymbols_1 = __webpack_require__(/*! ./types/typesymbols */ "./src/types/typesymbols.ts");
 const onInit_1 = __webpack_require__(/*! ./onInit */ "./src/onInit.ts");
+const startup_decorator_1 = __webpack_require__(/*! ./decorators/startup-decorator */ "./src/decorators/startup-decorator.ts");
+const dependency_decorator_1 = __webpack_require__(/*! ./decorators/dependency-decorator */ "./src/decorators/dependency-decorator.ts");
 let InjectedClass = class InjectedClass extends onInit_1.OnInit {
-    constructor(repository) {
+    constructor(repository, manager) {
         super();
         this.onInit = () => {
-            this._repository.toConsole("Repository Text");
+            this._repository.toConsole("From Index: Repository Text");
+            this._manager.log("From Index: Manager Text");
         };
         this._repository = repository;
+        this._manager = manager;
     }
 };
 InjectedClass = __decorate([
-    decorators_1.Startup(),
-    __param(0, decorators_1.Dependency(typesymbols_1.TypesSymbol.Repository)),
-    __metadata("design:paramtypes", [Object])
+    startup_decorator_1.Startup(),
+    __param(0, dependency_decorator_1.Dependency(typesymbols_1.TypesSymbol.Repository)),
+    __param(1, dependency_decorator_1.Dependency(typesymbols_1.TypesSymbol.Manager)),
+    __metadata("design:paramtypes", [Object, Object])
 ], InjectedClass);
 exports.InjectedClass = InjectedClass;
 
@@ -1538,21 +1556,22 @@ exports.InjectedClass = InjectedClass;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 __webpack_require__(/*! reflect-metadata */ "./node_modules/reflect-metadata/Reflect.js");
+const ioc_container_1 = __webpack_require__(/*! ./ioc-container */ "./src/ioc-container.ts");
 exports.Injector = new class {
     resolve(target) {
         console.log(target);
         let registeredTypes = Reflect.getOwnMetadataKeys(target)
             .filter((value) => value.indexOf("ioctypes") != -1);
-        console.log(registeredTypes);
-        let dependencies = [];
+        let typeSymbols = [];
         registeredTypes.forEach((metadataKey) => {
             let index = Number.parseInt(metadataKey.substring(metadataKey.lastIndexOf(':') + 1));
-            dependencies[index] = Reflect.getMetadata(metadataKey, target);
+            typeSymbols[index] = Reflect.getMetadata(metadataKey, target);
         });
         let resolvedDependencies = Array();
-        if (dependencies.length) {
-            dependencies.forEach(dependency => {
-                resolvedDependencies.push(exports.Injector.resolve(dependency));
+        if (typeSymbols.length) {
+            typeSymbols.forEach(typeSymbol => {
+                ioc_container_1.Container.instance().resolve(typeSymbol);
+                resolvedDependencies.push(exports.Injector.resolve(ioc_container_1.Container.instance().resolve(typeSymbol)));
             });
         }
         return new target(...resolvedDependencies);
@@ -1572,9 +1591,9 @@ exports.Injector = new class {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const typesymbols_1 = __webpack_require__(/*! ./typesymbols */ "./src/typesymbols.ts");
-const querymanager_1 = __webpack_require__(/*! ./querymanager */ "./src/querymanager.ts");
+const typesymbols_1 = __webpack_require__(/*! ./types/typesymbols */ "./src/types/typesymbols.ts");
 const repository_1 = __webpack_require__(/*! ./repository */ "./src/repository.ts");
+const manager_1 = __webpack_require__(/*! ./manager */ "./src/manager.ts");
 class Container {
     constructor() {
         this._iocContainer = new Map();
@@ -1595,11 +1614,31 @@ class Container {
         return this._iocContainer.get(abstraction);
     }
     registerTypes() {
-        this._iocContainer.set(typesymbols_1.TypesSymbol.Repository, repository_1.Repository);
-        this._iocContainer.set(typesymbols_1.TypesSymbol.QueryManager, querymanager_1.QueryManager);
+        this.bind(typesymbols_1.TypesSymbol.Repository, repository_1.Repository);
+        this.bind(typesymbols_1.TypesSymbol.Manager, manager_1.Manager);
     }
 }
 exports.Container = Container;
+
+
+/***/ }),
+
+/***/ "./src/manager.ts":
+/*!************************!*\
+  !*** ./src/manager.ts ***!
+  \************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+class Manager {
+    log(text) {
+        console.log(text);
+    }
+}
+exports.Manager = Manager;
 
 
 /***/ }),
@@ -1617,26 +1656,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 class OnInit {
 }
 exports.OnInit = OnInit;
-
-
-/***/ }),
-
-/***/ "./src/querymanager.ts":
-/*!*****************************!*\
-  !*** ./src/querymanager.ts ***!
-  \*****************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-class QueryManager {
-    log(text) {
-        console.log(text);
-    }
-}
-exports.QueryManager = QueryManager;
 
 
 /***/ }),
@@ -1663,19 +1682,19 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const decorators_1 = __webpack_require__(/*! ./decorators */ "./src/decorators.ts");
-const typesymbols_1 = __webpack_require__(/*! ./typesymbols */ "./src/typesymbols.ts");
+const typesymbols_1 = __webpack_require__(/*! ./types/typesymbols */ "./src/types/typesymbols.ts");
+const dependency_decorator_1 = __webpack_require__(/*! ./decorators/dependency-decorator */ "./src/decorators/dependency-decorator.ts");
 let Repository = class Repository {
-    constructor(queryManager) {
-        this._queryManager = queryManager;
+    constructor(manager) {
+        this._manager = manager;
     }
     toConsole(text) {
         console.log(text);
-        this._queryManager.log("Query Manager Text");
+        this._manager.log("From Repo : Manager Text");
     }
 };
 Repository = __decorate([
-    __param(0, decorators_1.Dependency(typesymbols_1.TypesSymbol.QueryManager)),
+    __param(0, dependency_decorator_1.Dependency(typesymbols_1.TypesSymbol.Manager)),
     __metadata("design:paramtypes", [Object])
 ], Repository);
 exports.Repository = Repository;
@@ -1683,10 +1702,10 @@ exports.Repository = Repository;
 
 /***/ }),
 
-/***/ "./src/typesymbols.ts":
-/*!****************************!*\
-  !*** ./src/typesymbols.ts ***!
-  \****************************/
+/***/ "./src/types/typesymbols.ts":
+/*!**********************************!*\
+  !*** ./src/types/typesymbols.ts ***!
+  \**********************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -1695,7 +1714,7 @@ exports.Repository = Repository;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TypesSymbol = {
     Repository: Symbol.for("IRepository"),
-    QueryManager: Symbol.for("IQueryManager")
+    Manager: Symbol.for("IManager")
 };
 
 

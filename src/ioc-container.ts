@@ -1,6 +1,7 @@
 import { Type } from './injector';
-import { TypesSymbol } from './typesymbols';
+import { TypesSymbol } from './types/typesymbols';
 import { Repository } from './repository';
+import { Manager } from './manager';
 
 export interface IContainer {
     bind(abstraction: symbol, implementation: Type<any>): void;
@@ -35,7 +36,8 @@ export class Container implements IContainer {
         return this._iocContainer.get(abstraction);
     }
 
-    private registerTypes(): void {
-        this._iocContainer.set(TypesSymbol.Repository, Repository);
+    registerTypes(): void {
+        this.bind(TypesSymbol.Repository, Repository);
+        this.bind(TypesSymbol.Manager, Manager);
     }
 }
