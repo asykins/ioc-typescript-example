@@ -1455,6 +1455,33 @@ module.exports = g;
 
 /***/ }),
 
+/***/ "./src/custom-types/types-symbols.ts":
+/*!*******************************************!*\
+  !*** ./src/custom-types/types-symbols.ts ***!
+  \*******************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+/**
+ * Use this class to associate your class with a unique symbol
+ *
+ * Example :
+ *
+ *      export const TypesSymblol = {
+ *          MyDependency: Symbol.for("IMyDependency")
+ *      }
+ */
+exports.TypesSymbol = {
+    Repository: Symbol.for("IRepository"),
+    Manager: Symbol.for("IManager")
+};
+
+
+/***/ }),
+
 /***/ "./src/decorators/dependency-decorator.ts":
 /*!************************************************!*\
   !*** ./src/decorators/dependency-decorator.ts ***!
@@ -1468,7 +1495,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 __webpack_require__(/*! reflect-metadata */ "./node_modules/reflect-metadata/Reflect.js");
 function Dependency(registeredType) {
     return (target, propertyKey, parameterIndex) => {
-        Reflect.defineMetadata("design:ioctypes:" + parameterIndex, registeredType, target);
+        Reflect.defineMetadata(`"design:ioctypes:${parameterIndex}"`, registeredType, target);
     };
 }
 exports.Dependency = Dependency;
@@ -1486,7 +1513,7 @@ exports.Dependency = Dependency;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const injector_1 = __webpack_require__(/*! ../injector */ "./src/injector.ts");
+const injector_1 = __webpack_require__(/*! ../ioc/injector */ "./src/ioc/injector.ts");
 function Startup() {
     return (target) => {
         injector_1.Injector.resolve(target).onInit();
@@ -1519,7 +1546,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const typesymbols_1 = __webpack_require__(/*! ./types/typesymbols */ "./src/types/typesymbols.ts");
+const types_symbols_1 = __webpack_require__(/*! ./custom-types/types-symbols */ "./src/custom-types/types-symbols.ts");
 const onInit_1 = __webpack_require__(/*! ./onInit */ "./src/onInit.ts");
 const startup_decorator_1 = __webpack_require__(/*! ./decorators/startup-decorator */ "./src/decorators/startup-decorator.ts");
 const dependency_decorator_1 = __webpack_require__(/*! ./decorators/dependency-decorator */ "./src/decorators/dependency-decorator.ts");
@@ -1536,8 +1563,8 @@ let InjectedClass = class InjectedClass extends onInit_1.OnInit {
 };
 InjectedClass = __decorate([
     startup_decorator_1.Startup(),
-    __param(0, dependency_decorator_1.Dependency(typesymbols_1.TypesSymbol.Repository)),
-    __param(1, dependency_decorator_1.Dependency(typesymbols_1.TypesSymbol.Manager)),
+    __param(0, dependency_decorator_1.Dependency(types_symbols_1.TypesSymbol.Repository)),
+    __param(1, dependency_decorator_1.Dependency(types_symbols_1.TypesSymbol.Manager)),
     __metadata("design:paramtypes", [Object, Object])
 ], InjectedClass);
 exports.InjectedClass = InjectedClass;
@@ -1545,10 +1572,40 @@ exports.InjectedClass = InjectedClass;
 
 /***/ }),
 
-/***/ "./src/injector.ts":
-/*!*************************!*\
-  !*** ./src/injector.ts ***!
-  \*************************/
+/***/ "./src/ioc/container-config.ts":
+/*!*************************************!*\
+  !*** ./src/ioc/container-config.ts ***!
+  \*************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const ioc_container_1 = __webpack_require__(/*! ./ioc-container */ "./src/ioc/ioc-container.ts");
+const types_symbols_1 = __webpack_require__(/*! ../custom-types/types-symbols */ "./src/custom-types/types-symbols.ts");
+const manager_1 = __webpack_require__(/*! ../manager */ "./src/manager.ts");
+const repository_1 = __webpack_require__(/*! ../repository */ "./src/repository.ts");
+class ContainerConfig {
+    /**
+     * Use this method to register your dependencies using the container instance
+     *
+     * Example : Container.instance().bind(TypesSymbol.MyDependency, MyDependency)
+     */
+    static register() {
+        ioc_container_1.Container.instance().bind(types_symbols_1.TypesSymbol.Manager, manager_1.Manager);
+        ioc_container_1.Container.instance().bind(types_symbols_1.TypesSymbol.Repository, repository_1.Repository);
+    }
+}
+exports.ContainerConfig = ContainerConfig;
+
+
+/***/ }),
+
+/***/ "./src/ioc/injector.ts":
+/*!*****************************!*\
+  !*** ./src/ioc/injector.ts ***!
+  \*****************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -1556,10 +1613,9 @@ exports.InjectedClass = InjectedClass;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 __webpack_require__(/*! reflect-metadata */ "./node_modules/reflect-metadata/Reflect.js");
-const ioc_container_1 = __webpack_require__(/*! ./ioc-container */ "./src/ioc-container.ts");
-exports.Injector = new class {
-    resolve(target) {
-        console.log(target);
+const ioc_container_1 = __webpack_require__(/*! ./ioc-container */ "./src/ioc/ioc-container.ts");
+class Injector {
+    static resolve(target) {
         let registeredTypes = Reflect.getOwnMetadataKeys(target)
             .filter((value) => value.indexOf("ioctypes") != -1);
         let typeSymbols = [];
@@ -1571,51 +1627,44 @@ exports.Injector = new class {
         if (typeSymbols.length) {
             typeSymbols.forEach(typeSymbol => {
                 ioc_container_1.Container.instance().resolve(typeSymbol);
-                resolvedDependencies.push(exports.Injector.resolve(ioc_container_1.Container.instance().resolve(typeSymbol)));
+                resolvedDependencies.push(Injector.resolve(ioc_container_1.Container.instance().resolve(typeSymbol)));
             });
         }
         return new target(...resolvedDependencies);
     }
-};
+}
+exports.Injector = Injector;
 
 
 /***/ }),
 
-/***/ "./src/ioc-container.ts":
-/*!******************************!*\
-  !*** ./src/ioc-container.ts ***!
-  \******************************/
+/***/ "./src/ioc/ioc-container.ts":
+/*!**********************************!*\
+  !*** ./src/ioc/ioc-container.ts ***!
+  \**********************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const typesymbols_1 = __webpack_require__(/*! ./types/typesymbols */ "./src/types/typesymbols.ts");
-const repository_1 = __webpack_require__(/*! ./repository */ "./src/repository.ts");
-const manager_1 = __webpack_require__(/*! ./manager */ "./src/manager.ts");
+const container_config_1 = __webpack_require__(/*! ./container-config */ "./src/ioc/container-config.ts");
 class Container {
     constructor() {
         this._iocContainer = new Map();
-        this.registerTypes();
     }
     static instance() {
         if (!Container.containerInstance) {
-            return new Container();
+            this.containerInstance = new Container();
+            container_config_1.ContainerConfig.register();
         }
-        else {
-            return Container.containerInstance;
-        }
+        return Container.containerInstance;
     }
     bind(abstraction, implementation) {
         this._iocContainer.set(abstraction, implementation);
     }
     resolve(abstraction) {
         return this._iocContainer.get(abstraction);
-    }
-    registerTypes() {
-        this.bind(typesymbols_1.TypesSymbol.Repository, repository_1.Repository);
-        this.bind(typesymbols_1.TypesSymbol.Manager, manager_1.Manager);
     }
 }
 exports.Container = Container;
@@ -1682,7 +1731,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const typesymbols_1 = __webpack_require__(/*! ./types/typesymbols */ "./src/types/typesymbols.ts");
+const types_symbols_1 = __webpack_require__(/*! ./custom-types/types-symbols */ "./src/custom-types/types-symbols.ts");
 const dependency_decorator_1 = __webpack_require__(/*! ./decorators/dependency-decorator */ "./src/decorators/dependency-decorator.ts");
 let Repository = class Repository {
     constructor(manager) {
@@ -1694,28 +1743,10 @@ let Repository = class Repository {
     }
 };
 Repository = __decorate([
-    __param(0, dependency_decorator_1.Dependency(typesymbols_1.TypesSymbol.Manager)),
+    __param(0, dependency_decorator_1.Dependency(types_symbols_1.TypesSymbol.Manager)),
     __metadata("design:paramtypes", [Object])
 ], Repository);
 exports.Repository = Repository;
-
-
-/***/ }),
-
-/***/ "./src/types/typesymbols.ts":
-/*!**********************************!*\
-  !*** ./src/types/typesymbols.ts ***!
-  \**********************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.TypesSymbol = {
-    Repository: Symbol.for("IRepository"),
-    Manager: Symbol.for("IManager")
-};
 
 
 /***/ })

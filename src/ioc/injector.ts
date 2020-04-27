@@ -1,9 +1,9 @@
 import 'reflect-metadata';
 import { Container } from './ioc-container';
+import { Type } from '../interfaces/type';
 
-export let Injector = new class {
-    resolve<T>(target: Type<T>) : T {
-        console.log(target);
+export class Injector {
+    static resolve<T>(target: Type<T>): T {
         let registeredTypes = Reflect.getOwnMetadataKeys(target)
                                      .filter((value: string) => value.indexOf("ioctypes") != -1);
 
@@ -18,13 +18,8 @@ export let Injector = new class {
             typeSymbols.forEach(typeSymbol => {
                 Container.instance().resolve(typeSymbol);
                 resolvedDependencies.push(Injector.resolve(Container.instance().resolve(typeSymbol)));    
-            })
+            });
         }
-
         return new target(...resolvedDependencies);
     }
-}
-
-export interface Type<T> {
-    new(...args: any[]): T;
 }

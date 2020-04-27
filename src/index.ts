@@ -1,4 +1,4 @@
-import { TypesSymbol } from "./types/typesymbols";
+import { TypesSymbol } from "./custom-types/types-symbols";
 import { OnInit } from "./onInit";
 import { Startup } from "./decorators/startup-decorator";
 import { IRepository } from "./repository";

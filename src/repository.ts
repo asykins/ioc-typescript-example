@@ -1,4 +1,4 @@
-import { TypesSymbol } from "./types/typesymbols";
+import { TypesSymbol } from "./custom-types/types-symbols";
 import { IManager } from "./manager";
 import { Dependency } from "./decorators/dependency-decorator";
 

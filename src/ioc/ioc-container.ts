@@ -1,7 +1,5 @@
-import { Type } from './injector';
-import { TypesSymbol } from './types/typesymbols';
-import { Repository } from './repository';
-import { Manager } from './manager';
+import { Type } from '../interfaces/type';
+import { ContainerConfig } from './container-config';
 
 export interface IContainer {
     bind(abstraction: symbol, implementation: Type<any>): void;
@@ -16,16 +14,14 @@ export class Container implements IContainer {
 
     constructor() {
         this._iocContainer = new Map<symbol, Type<any>>();
-        this.registerTypes();
     }
 
     static instance(): IContainer {
         if(!Container.containerInstance) {
-            return new Container();
+            this.containerInstance = new Container();
+            ContainerConfig.register();
         }
-        else {
-            return Container.containerInstance;
-        }
+        return Container.containerInstance;
     }
 
     bind<T>(abstraction: symbol, implementation: Type<any>): void{
@@ -34,10 +30,5 @@ export class Container implements IContainer {
 
     resolve(abstraction: symbol) : Type<any> {
         return this._iocContainer.get(abstraction);
-    }
-
-    registerTypes(): void {
-        this.bind(TypesSymbol.Repository, Repository);
-        this.bind(TypesSymbol.Manager, Manager);
     }
 }
